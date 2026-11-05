@@ -161,7 +161,7 @@ button {
     "Playfair Display", "Noto Serif Devanagari", "Noto Serif Telugu", Georgia,
     serif;
   font-weight: 700;
-  font-size: clamp(2.4rem, 6.5vw, 5.5rem);
+  font-size: clamp(2.4rem, 4.5vw, 5.5rem);
   line-height: 1.15;
   color: #fff;
   text-shadow: 0 4px 24px rgba(0, 0, 0, 0.65);
@@ -987,7 +987,7 @@ button {
   padding: 0 20px;
 
   color: #ffffff;
-  font-size: 16px;
+  font-size: 12px;
   line-height: 1.8;
   font-weight: 400;
   text-align: center;
