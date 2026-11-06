@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useLang } from '../i18n.jsx';
 
 const Icon = ({ children }) => (
@@ -15,9 +15,52 @@ const Icon = ({ children }) => (
   </svg>
 );
 
-// Small helper bar at the bottom of the tour: zoom out, recenter, zoom in.
+// Works in Chrome, Edge, Firefox and Safari on desktop.
+const fullscreenElement = () =>
+  document.fullscreenElement || document.webkitFullscreenElement;
+
+// Small helper bar at the bottom of the tour: zoom out, recenter, zoom in, fullscreen.
 export default function ViewControls({ onZoomIn, onZoomOut, onRecenter }) {
   const { t } = useLang();
+  const [isFullscreen, setIsFullscreen] = useState(!!fullscreenElement());
+  // iPhone Safari cannot show a web page fullscreen: hide the button there.
+  const canFullscreen = !!(
+    document.fullscreenEnabled || document.webkitFullscreenEnabled
+  );
+
+  useEffect(() => {
+    const update = () => setIsFullscreen(!!fullscreenElement());
+    document.addEventListener('fullscreenchange', update);
+    document.addEventListener('webkitfullscreenchange', update);
+    return () => {
+      document.removeEventListener('fullscreenchange', update);
+      document.removeEventListener('webkitfullscreenchange', update);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (fullscreenElement()) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      exit?.call(document)?.catch?.(() => {});
+    } else {
+      const el = document.documentElement;
+      const enter = el.requestFullscreen || el.webkitRequestFullscreen;
+      enter?.call(el)?.catch?.(() => {});
+    }
+  }, []);
+
+  // Press F to switch fullscreen on or off.
+  useEffect(() => {
+    if (!canFullscreen) return undefined;
+    const onKey = (e) => {
+      if (e.key.toLowerCase() !== 'f' || e.ctrlKey || e.metaKey || e.altKey) return;
+      toggleFullscreen();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canFullscreen, toggleFullscreen]);
+
+  const fsLabel = isFullscreen ? t('exitFullscreen') : t('fullscreen');
 
   return (
     <div className="view-controls" role="group" aria-label={t('virtualTour')}>
@@ -38,6 +81,23 @@ export default function ViewControls({ onZoomIn, onZoomOut, onRecenter }) {
           <path d="M12 5v14M5 12h14" />
         </Icon>
       </button>
+      {canFullscreen && (
+        <button
+          className="fullscreen-btn"
+          onClick={toggleFullscreen}
+          aria-label={fsLabel}
+          aria-pressed={isFullscreen}
+          title={`${fsLabel} (F)`}
+        >
+          <Icon>
+            {isFullscreen ? (
+              <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+            ) : (
+              <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+            )}
+          </Icon>
+        </button>
+      )}
     </div>
   );
 }

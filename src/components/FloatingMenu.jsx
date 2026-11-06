@@ -50,6 +50,13 @@ const ICONS = {
       <path d="M3 17l5-4 4 3 3-2 6 4" />
     </Svg>
   ),
+  renders: (
+    <Svg>
+      <ellipse cx="12" cy="12" rx="9.5" ry="4.2" />
+      <path d="M12 7.8A4.2 4.2 0 1112 16.2" />
+      <circle cx="12" cy="12" r="1.4" />
+    </Svg>
+  ),
   language: (
     <Svg>
       <circle cx="12" cy="12" r="9" />
@@ -84,7 +91,7 @@ function useViewportHeight() {
 }
 
 // view    : 'home' | 'tour'                 (which page is behind the menu)
-// overlay : null | 'history' | 'plans' | 'gallery'
+// overlay : null | 'history' | 'plans' | 'gallery' | 'renders'
 export default function FloatingMenu({
   view,
   overlay,
@@ -162,6 +169,13 @@ export default function FloatingMenu({
       label: t("gallery"),
       active: overlay === "gallery",
       run: openOverlay("gallery"),
+    },
+    {
+      id: "renders",
+      icon: ICONS.renders,
+      label: t("renders"),
+      active: overlay === "renders",
+      run: openOverlay("renders"),
     },
     {
       id: "language",

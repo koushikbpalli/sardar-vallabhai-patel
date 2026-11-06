@@ -14,7 +14,9 @@ import {
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 import { nodes, START_NODE, getNode } from "../data/nodes.js";
-import { pick } from "../i18n.jsx";
+import { pick, useLang } from "../i18n.jsx";
+import { SHOPS } from "../data/shops.js";
+import { SIGN_TEXT } from "../data/signs.js";
 
 // ---- settings --------------------------------------------------------------
 const MODEL_URL = "/models/market.glb"; // put your exported model in public/models/
@@ -30,13 +32,20 @@ const PIN_RANGE = 25; // stall pins show within this distance (m)
 const ARROW_RANGE = 20; // walking arrows show within this distance (m)
 const DEG = Math.PI / 180;
 
+// Signboards on the temporary street are drawn onto canvases; they are redrawn
+// when the language changes. The font list lets Hindi / Telugu text show.
+const SIGN_FONT = '"Noto Sans Devanagari","Noto Sans Telugu",Arial,sans-serif';
+const signText = (label, lang) =>
+  (lang !== "en" && SIGN_TEXT[label]?.[lang]) || label;
+
 const easeInOut = (k) =>
   k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
 
 // ---- Poorna Market fallback scene ------------------------------------------
 // Mirrors the illustrative market layout in poorna_market_walkthrough_arrows.html.
-function buildTempStreet() {
+function buildTempStreet(currentLang = "en") {
   const group = new THREE.Group();
+  const signs = [];
   const meshes = [];
   const groundMeshes = [];
   const roofLights = [];
@@ -90,18 +99,22 @@ function buildTempStreet() {
     c.width = 768;
     c.height = 160;
     const q = c.getContext("2d");
-    q.fillStyle = "#f2dcb5";
-    q.fillRect(0, 0, 768, 160);
-    q.strokeStyle = "#765638";
-    q.lineWidth = 10;
-    q.strokeRect(5, 5, 758, 150);
-    q.fillStyle = "#3c2c20";
-    q.font = "bold 62px Arial";
-    q.textAlign = "center";
-    q.textBaseline = "middle";
-    q.fillText(label.toUpperCase(), 384, 82, 720);
+    const draw = (text) => {
+      q.fillStyle = "#f2dcb5";
+      q.fillRect(0, 0, 768, 160);
+      q.strokeStyle = "#765638";
+      q.lineWidth = 10;
+      q.strokeRect(5, 5, 758, 150);
+      q.fillStyle = "#3c2c20";
+      q.font = `bold 62px ${SIGN_FONT}`;
+      q.textAlign = "center";
+      q.textBaseline = "middle";
+      q.fillText(text.toUpperCase(), 384, 82, 720);
+    };
+    draw(signText(label, currentLang));
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
+    signs.push({ tex, draw, label });
     const m = new THREE.Mesh(
       new THREE.PlaneGeometry(w, 0.8),
       new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }),
@@ -284,15 +297,19 @@ function buildTempStreet() {
     c.width = 512;
     c.height = 120;
     const q = c.getContext("2d");
-    q.fillStyle = "#f0d7a7";
-    q.fillRect(0, 0, 512, 120);
-    q.fillStyle = "#3d2c20";
-    q.font = "bold 42px Arial";
-    q.textAlign = "center";
-    q.textBaseline = "middle";
-    q.fillText(name, 256, 62, 490);
+    const draw = (text) => {
+      q.fillStyle = "#f0d7a7";
+      q.fillRect(0, 0, 512, 120);
+      q.fillStyle = "#3d2c20";
+      q.font = `bold 42px ${SIGN_FONT}`;
+      q.textAlign = "center";
+      q.textBaseline = "middle";
+      q.fillText(text, 256, 62, 490);
+    };
+    draw(signText(name, currentLang));
     const tx = new THREE.CanvasTexture(c);
     tx.colorSpace = THREE.SRGBColorSpace;
+    signs.push({ tex: tx, draw, label: name });
     const sign = new THREE.Mesh(
       new THREE.PlaneGeometry(3.1, 0.42),
       new THREE.MeshBasicMaterial({ map: tx, side: THREE.DoubleSide }),
@@ -482,17 +499,21 @@ function buildTempStreet() {
     gateZ - depth / 2 - 0.08,
     0x9b8668,
   );
-  return { group, meshes, roofLights, festoonLights, groundMeshes };
+  return { group, meshes, roofLights, festoonLights, groundMeshes, signs };
 }
 
 // ---- component -------------------------------------------------------------
 // Same interface as the old panorama Tour, so App.jsx needs no changes.
 const Tour = forwardRef(function Tour(
-  { lang, onMarkerSelect, onSceneChange, onReady },
+  { lang, active = true, onMarkerSelect, onSceneChange, onReady },
   ref,
 ) {
+  const { t } = useLang();
   const containerRef = useRef(null);
   const apiRef = useRef({});
+  const signsRef = useRef([]);
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const labelsRef = useRef({ pins: [], arrows: [] });
 
   const callbacks = useRef({});
@@ -511,12 +532,26 @@ const Tour = forwardRef(function Tour(
       zoomIn: () => apiRef.current.zoomBy?.(-ZOOM_STEP),
       zoomOut: () => apiRef.current.zoomBy?.(ZOOM_STEP),
       recenter: () => apiRef.current.recenter?.(),
+      // Back to the entrance, walk mode, no open shop card (used on "Enter").
+      reset: () => {
+        setSelectedShop(null);
+        if (!walkModeRef.current) {
+          setWalkMode(true);
+          apiRef.current.setWalkMode?.(true);
+        }
+        apiRef.current.reset?.();
+      },
     }),
     [],
   );
 
-  // Language change: only relabel the tooltips, the 3D scene stays untouched.
+  // Language change: relabel tooltips and the street signboards; the 3D scene
+  // itself is not rebuilt.
   useEffect(() => {
+    signsRef.current.forEach(({ tex, draw, label }) => {
+      draw(signText(label, lang));
+      tex.needsUpdate = true;
+    });
     labelsRef.current.pins.forEach(({ el, marker }) => {
       el.title = pick(marker.title, lang);
     });
@@ -551,7 +586,7 @@ const Tour = forwardRef(function Tour(
     camera.rotation.order = "YXZ";
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setSize(initial.w, initial.h);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -765,6 +800,14 @@ const Tour = forwardRef(function Tour(
           pitch = 0;
           applyView();
         }
+      },
+      reset() {
+        tweens.length = 0;
+        container.classList.remove("walking");
+        setPose({ position: [0, EYE_HEIGHT, 11], yaw: 0, pitch: 0 });
+        camera.fov = FOV_DEFAULT;
+        camera.updateProjectionMatrix();
+        currentNodeId = START_NODE;
       },
       recenter() {
         flyTo(
@@ -1008,6 +1051,8 @@ const Tour = forwardRef(function Tour(
 
     renderer.setAnimationLoop(() => {
       const dt = Math.min(clock.getDelta(), 0.1);
+      // Not visible (home page or a popup is on top): skip all drawing work.
+      if (!activeRef.current) return;
 
       if (!walkModeRef.current) {
         orbitControls.update();
@@ -1099,7 +1144,8 @@ const Tour = forwardRef(function Tour(
           `Could not load ${MODEL_URL}; showing the temporary street.`,
           err,
         );
-        const temp = buildTempStreet();
+        const temp = buildTempStreet(langRef.current);
+        signsRef.current = temp.signs || [];
         world = temp.group;
         floorMeshes = temp.groundMeshes || temp.meshes;
         roofLights = temp.roofLights || [];
@@ -1108,6 +1154,11 @@ const Tour = forwardRef(function Tour(
       scene.add(world);
       setPose({ position: [0, EYE_HEIGHT, 11], yaw: 0, pitch: 0 });
       applyTimeOfDay(activeTime);
+      // Compile shaders and upload everything to the GPU now, so the first
+      // visible frame (when the visitor presses Enter) does not stall.
+      renderer.compile(scene, camera);
+      renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
       requestAnimationFrame(() => {
         if (!disposed) callbacks.current.onReady?.();
       });
@@ -1148,20 +1199,12 @@ const Tour = forwardRef(function Tour(
       labelRenderer.domElement.remove();
       container.classList.remove("walking");
       apiRef.current = {};
+      signsRef.current = [];
       labelsRef.current = { pins: [], arrows: [] };
     };
   }, []);
 
-  const shops = [
-    ["Vegetable Market", "🥬", "Greens, tomatoes and gourds"],
-    ["Fresh Fruit Market", "🍊", "Bananas, mangoes and citrus"],
-    ["Flower Shop", "🌼", "Jasmine, marigold and roses"],
-    ["Meat Shop", "🥩", "Fresh meat counter"],
-    ["Chicken & Poultry", "🍗", "Poultry display"],
-    ["Fish Market", "🐟", "Seafood display"],
-    ["Dairy & Eggs", "🥚", "Milk, curd and eggs"],
-    ["Spices & Groceries", "🌶️", "Pulses, spices and grains"],
-  ];
+  const shopInfo = SHOPS.find((x) => x.id === selectedShop);
   const changeTime = (mode) => {
     setTimeOfDay(mode);
     apiRef.current.setTimeOfDay?.(mode);
@@ -1187,11 +1230,11 @@ const Tour = forwardRef(function Tour(
     >
       <div className="tour-topbar">
         <div className="tour-brand">
-          POORNA MARKET <small>VIRTUAL WALKTHROUGH</small>
+          {t("tourBrand")} <small>{t("tourSub")}</small>
         </div>
         <div className="tour-controls">
           <button type="button" onClick={toggleWalk}>
-            {walkMode ? "Orbit view" : "Walk mode"}
+            {walkMode ? t("orbitView") : t("walkMode")}
           </button>
           {["day", "evening", "night"].map((mode) => (
             <button
@@ -1200,59 +1243,74 @@ const Tour = forwardRef(function Tour(
               className={timeOfDay === mode ? "active" : ""}
               onClick={() => changeTime(mode)}
             >
-              {mode[0].toUpperCase() + mode.slice(1)}
+              {t(mode)}
             </button>
           ))}
         </div>
       </div>
       <aside className="tour-side">
-        <h3>Explore the market</h3>
-        <p>Explore the market stalls and surrounding Poorna Market streets.</p>
-        {shops.map(([name, emoji, description]) => (
+        <h3>{t("exploreTitle")}</h3>
+        <p>{t("exploreIntro")}</p>
+        {SHOPS.map((shop) => (
           <button
             type="button"
-            key={name}
-            className={selectedShop === name ? "shop active" : "shop"}
+            key={shop.id}
+            className={selectedShop === shop.id ? "shop active" : "shop"}
             onClick={() => {
-              setSelectedShop(name);
+              setSelectedShop(shop.id);
               callbacks.current.onMarkerSelect?.(null);
             }}
           >
             <span>
-              {emoji} {name}
+              {shop.emoji} {pick(shop.name, lang)}
             </span>
-            <small>{description}</small>
+            <small>{pick(shop.desc, lang)}</small>
           </button>
         ))}
-        <p className="tour-hint">
-          Drag to look around · W/A/S/D or arrow keys to move · ←/→ to turn ·
-          Select a shop for details.
-        </p>
+        <p className="tour-hint">{t("tourHint")}</p>
       </aside>
-      {selectedShop && (
-        <section className="tour-info">
+      {shopInfo && (
+        <section className="tour-info" aria-live="polite">
           <button
             type="button"
             className="tour-close"
             onClick={() => setSelectedShop(null)}
+            aria-label={t("close")}
           >
             ×
           </button>
-          <h3>{selectedShop}</h3>
-          <p>
-            Market stall with category signage, counters, shelves, storage
-            crates and displayed products. This is an illustrative layout;
-            adjust positions to match your final site plan.
-          </p>
+          <div className="tour-info-body">
+            <h3>
+              {shopInfo.emoji} {pick(shopInfo.name, lang)}
+            </h3>
+            <p>{pick(shopInfo.about, lang)}</p>
+            <h4>{t("shopFinds")}</h4>
+            <ul className="tour-chips">
+              {(pick(shopInfo.items, lang) || []).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <h4>{t("shopTip")}</h4>
+            <p className="tour-tip">{pick(shopInfo.tip, lang)}</p>
+          </div>
         </section>
       )}
       <style>{`
         .tour-topbar{position:absolute;z-index:5;top:16px;left:16px;right:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;pointer-events:none;font-family:Inter,Arial,sans-serif;color:#fff}
-        .tour-brand,.tour-controls,.tour-side,.tour-info{background:rgba(18,22,28,.84);border:1px solid #ffffff25;backdrop-filter:blur(10px);border-radius:12px;box-shadow:0 8px 24px #0003}
+        .tour-brand,.tour-controls,.tour-side,.tour-info{background:rgba(18,22,28,.84);border:1px solid #ffffff25;border-radius:12px;box-shadow:0 8px 24px #0003}
         .tour-brand{padding:12px 16px;font-weight:700;letter-spacing:.02em}.tour-brand small{display:block;margin-top:4px;color:#d6d9dd;font-size:10px;font-weight:400;letter-spacing:.1em}
         .tour-controls{padding:8px;display:flex;gap:7px;pointer-events:auto}.tour-controls button,.tour-side button,.tour-close{border:1px solid #ffffff30;border-radius:8px;padding:9px 12px;color:white;background:#ffffff12;cursor:pointer;font-size:13px}.tour-controls button.active,.tour-side button.active{background:#e9a34b35;border-color:#e9a34b}
         .tour-side{position:absolute;z-index:5;top:100px;left:16px;width:240px;padding:14px;color:#fff;font-family:Inter,Arial,sans-serif}.tour-side h3,.tour-info h3{margin:0 0 9px;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#f4c17e}.tour-side p,.tour-info p{margin:0 0 10px;color:#d6d9dd;font-size:12px;line-height:1.45}.tour-side .shop{display:block;width:100%;text-align:left;margin:6px 0}.tour-side .shop span,.tour-side .shop small{display:block}.tour-side .shop small{margin:4px 0 0 24px;color:#c9cdd2;font-size:10px}.tour-side .tour-hint{margin-top:10px;font-size:10px}.tour-info{position:absolute;z-index:6;right:16px;bottom:16px;width:min(300px,calc(100vw - 32px));padding:15px;color:#fff;font-family:Inter,Arial,sans-serif}.tour-close{float:right;padding:2px 9px;font-size:20px}
         @media(max-width:650px){.tour-topbar{top:8px;left:8px;right:8px;align-items:flex-start}.tour-brand{font-size:11px;padding:9px}.tour-controls{max-width:65vw;flex-wrap:wrap;justify-content:flex-end}.tour-controls button{padding:7px;font-size:11px}.tour-side{top:82px;left:8px;width:185px;padding:9px}.tour-side .shop{padding:7px;font-size:11px}.tour-side .shop small{font-size:9px}}
+        .tour-info{width:min(340px,calc(100vw - 32px));max-height:calc(100vh - 130px);overflow-y:auto;padding:0}
+        .tour-info-body{padding:14px 16px 16px}
+        .tour-info .tour-close{position:absolute;top:8px;right:8px;float:none;z-index:1;width:30px;height:30px;padding:0;line-height:1;border-radius:50%;background:#000000a8;font-size:18px}
+        .tour-info h3{margin:0 0 8px;padding-right:30px;font-size:16px;letter-spacing:.02em;text-transform:none;color:#f4c17e}
+        .tour-info h4{margin:14px 0 7px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#f4c17e}
+        .tour-info p{margin:0;font-size:13px;line-height:1.6;color:#e4e7ea}
+        .tour-chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+        .tour-chips li{padding:4px 10px;border:1px solid #ffffff30;border-radius:999px;background:#ffffff12;color:#fff;font-size:12px}
+        .tour-info .tour-tip{padding:9px 11px;border-left:3px solid #e9a34b;border-radius:6px;background:#e9a34b18}
       `}</style>
     </div>
   );

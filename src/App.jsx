@@ -7,6 +7,7 @@ import ViewControls from "./components/ViewControls.jsx";
 import HistoryVideo from "./components/HistoryVideo.jsx";
 import Plans from "./components/Plans.jsx";
 import Gallery from "./components/Gallery.jsx";
+import Renders from "./components/Renders.jsx";
 import { START_NODE, getNode } from "./data/nodes.js";
 import { pick, useLang } from "./i18n.jsx";
 
@@ -24,10 +25,24 @@ export default function App() {
   const [revealed, setRevealed] = useState(false); // tour is ready, home can fade away
   const [currentNode, setCurrentNode] = useState(START_NODE);
   const [markerId, setMarkerId] = useState(null);
-  const [overlay, setOverlay] = useState(null); // null | 'history' | 'plans' | 'gallery'
+  const [overlay, setOverlay] = useState(null); // null | 'history' | 'plans' | 'gallery' | 'renders'
 
   const overlayRef = useRef(null);
   overlayRef.current = overlay;
+  const tourReadyRef = useRef(false);
+
+  // Build the 3D tour in the background while the home page is showing, so the
+  // model is already loaded and drawn once when the visitor presses Enter
+  // (loading it on click is what made entering lag).
+  useEffect(() => {
+    const start = () => setTourMounted(true);
+    if (window.requestIdleCallback) {
+      const id = window.requestIdleCallback(start, { timeout: 2500 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(start, 1500);
+    return () => window.clearTimeout(id);
+  }, []);
 
   useEffect(() => () => clearTimeout(revealTimer.current), []);
 
@@ -75,12 +90,14 @@ export default function App() {
 
     startMusic();
 
-    if (tourRef.current) {
-      tourRef.current.goTo(START_NODE);
-      reveal(700);
+    setTourMounted(true); // already mounted if the background build finished
+    tourRef.current?.reset?.(); // always start at the entrance
+    if (tourReadyRef.current) {
+      reveal(500);
     } else {
-      setTourMounted(true);
-      reveal(4000);
+      // Still loading: handleReady reveals as soon as the tour is ready.
+      // This is only a safety net in case loading takes very long.
+      reveal(10000);
     }
   };
 
@@ -123,6 +140,7 @@ export default function App() {
 
   // The tour tells us when the first panorama has loaded.
   const handleReady = useCallback(() => {
+    tourReadyRef.current = true;
     if (enteredRef.current) reveal(400);
   }, [reveal]);
 
@@ -140,6 +158,7 @@ export default function App() {
           <Tour
             ref={tourRef}
             lang={lang}
+            active={entered && !overlay}
             onMarkerSelect={setMarkerId}
             onSceneChange={handleSceneChange}
             onReady={handleReady}
@@ -163,6 +182,7 @@ export default function App() {
       {overlay === "history" && <HistoryVideo onClose={closeOverlay} />}
       {overlay === "plans" && <Plans onClose={closeOverlay} />}
       {overlay === "gallery" && <Gallery onClose={closeOverlay} />}
+      {overlay === "renders" && <Renders onClose={closeOverlay} />}
 
       <FloatingMenu
         view={entered ? "tour" : "home"}

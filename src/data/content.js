@@ -127,3 +127,38 @@ export const GALLERY = [
     },
   },
 ];
+
+// ---- 360° Renders: panorama images ---------------------------------------
+// src       : picture in public/ (path starts with "/")
+// thumbnail : optional small preview for the grid (faster than the full picture)
+// hfov      : optional, how many degrees the picture spans sideways.
+//             Leave it out for a full 360° panorama. For a picture that only
+//             covers part of the way round (e.g. a wide photo), set the
+//             angle (e.g. 120) and the viewer stops at the picture's edges.
+export const RENDERS = [
+  {
+    src: "/images/renders/chai-corner.jpg",
+    thumbnail: "/images/renders/chai-corner-thumb.jpg",
+    caption: { en: "Chai Corner", hi: "चाय कॉर्नर", te: "చాయ్ కార్నర్" },
+  },
+  {
+    src: "/images/renders/flower-shop.jpg",
+    thumbnail: "/images/renders/flower-shop-thumb.jpg",
+    hfov: 180,
+    caption: { en: "Flower Shop", hi: "फूल की दुकान", te: "పువ్వుల దుకాణం" },
+  },
+  {
+    src: "/images/renders/vegetables.jpg",
+    thumbnail: "/images/renders/vegetables-thumb.jpg",
+    caption: {
+      en: "Fruits & Vegetables",
+      hi: "फल और सब्ज़ी",
+      te: "ఫలాలు మరియు కూరగాయలు",
+    },
+  },
+  {
+    src: "/images/renders/meat-shop.jpg",
+    thumbnail: "/images/renders/meat-shop-thumb.jpg",
+    caption: { en: "Meat Section", hi: "मांस का भाग", te: "మాంస విభాగం" },
+  },
+];

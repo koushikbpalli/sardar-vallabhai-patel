@@ -1,4 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&display=swap");
+
 :root {
+  --gold: #c9a55a;
   --bg: #14110f;
   --panel: rgba(31, 24, 20, 0.92);
   --text: #f7efe6;
@@ -995,11 +998,6 @@ button {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
 }
 
-.home-center {
-  border: 2px solid yellow;
-  padding: 20px;
-  border-radius: 12px;
-}
 
 /* Tablet */
 @media (max-width: 768px) {
@@ -1043,3 +1041,457 @@ button {
 .gallery-item figcaption {
   margin-top: 8px;
 } */
+
+/* ================================================================== */
+/* Heritage home page (matches reference design)                      */
+/* ================================================================== */
+
+.home-shade {
+  background: rgba(10, 7, 4, 0.62);
+}
+
+/* thin gold frame */
+.home-frame {
+  position: absolute;
+  inset: 32px;
+  border: 1px solid rgba(201, 165, 90, 0.75);
+  pointer-events: none;
+}
+
+.home-center {
+  gap: 0;
+  padding: 0 24px;
+  border: none;
+  border-radius: 0;
+}
+
+.home-icon {
+  width: 112px;
+  height: auto;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+
+.home-eyebrow {
+  margin: 0 0 40px;
+  font-family: "Cinzel", "Noto Serif Devanagari", "Noto Serif Telugu", Georgia, serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.home-title {
+  font-family: "Cinzel", "Noto Serif Devanagari", "Noto Serif Telugu", Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  color: #fff;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.7);
+}
+
+.home-subtitle {
+  margin: 10px 0 24px;
+  font-family: "Cinzel", "Noto Serif Devanagari", "Noto Serif Telugu", Georgia, serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.home-description {
+  max-width: 720px;
+  margin: 0 auto 28px;
+  padding: 0;
+  font-size: 0.95rem;
+  line-height: 1.75;
+  font-weight: 400;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+
+/* diamond enter button */
+.enter-diamond {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.enter-diamond::before,
+.enter-diamond::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease;
+}
+
+/* inner dark diamond with gold edge */
+.enter-diamond::before {
+  width: 80px;
+  height: 80px;
+  background: rgba(8, 6, 4, 0.9);
+  border: 1px solid var(--gold);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55);
+}
+
+/* outer thin outline diamond */
+.enter-diamond::after {
+  width: 98px;
+  height: 98px;
+  border: 1px solid rgba(201, 165, 90, 0.7);
+}
+
+.enter-diamond:hover:not(:disabled)::before {
+  background: rgba(40, 28, 12, 0.95);
+}
+
+.enter-diamond:hover:not(:disabled)::after {
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.08);
+}
+
+.enter-diamond:disabled {
+  cursor: progress;
+  opacity: 0.85;
+}
+
+.enter-diamond-text {
+  position: relative;
+  z-index: 1;
+  max-width: 76px;
+  font-family: "Cinzel", "Noto Serif Devanagari", "Noto Serif Telugu", Georgia, serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* language bar: plain text with diamond separators */
+.lang-bar {
+  bottom: 52px;
+  gap: 22px;
+  align-items: center;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.lang-btn {
+  padding: 6px 4px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  font-family: "Cinzel", "Noto Serif Devanagari", "Noto Serif Telugu", Georgia, serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.lang-btn:hover {
+  background: transparent;
+  color: var(--gold);
+}
+
+.lang-btn.active {
+  background: transparent;
+  color: var(--gold);
+  font-weight: 600;
+  border-bottom-color: var(--gold);
+}
+
+.lang-sep {
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  border: 1px solid rgba(201, 165, 90, 0.8);
+}
+
+@media (max-width: 768px) {
+  .home-frame {
+    inset: 14px;
+  }
+
+  .home-eyebrow {
+    margin-bottom: 24px;
+  }
+
+  .home-description {
+    max-width: 92%;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  .lang-bar {
+    bottom: 32px;
+    gap: 12px;
+  }
+
+  .lang-btn {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+  }
+}
+
+/* ------------------------------------------------------------------ 360 panorama */
+/* The home background is a WebGL view into the panorama (see PanoBackground.jsx).
+   The still image below is the fallback while it loads or without WebGL. */
+.home-bg {
+  background: url("/images/home-bg.png") center / cover no-repeat;
+  overflow: hidden;
+}
+
+.pano-bg {
+  position: absolute;
+  inset: 0;
+}
+
+.pano-bg-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.pano-bg.ready .pano-bg-canvas {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ home layout fix */
+/* Keep the diamond button clear of the language bar: reserve room at the
+   bottom of the content column (the diamond's corners poke ~13px outside its box). */
+.home-center {
+  padding: 64px 24px 140px;
+}
+
+.enter-diamond {
+  margin-top: 20px;
+  margin-bottom: 14px;
+}
+
+@media (max-height: 820px) {
+  .home-center {
+    padding: 56px 24px 128px;
+  }
+
+  .home-icon {
+    width: 90px;
+  }
+
+  .home-eyebrow {
+    margin-bottom: 20px;
+  }
+
+  .home-subtitle {
+    margin-bottom: 14px;
+  }
+
+  .home-description {
+    margin-bottom: 14px;
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+
+  .enter-diamond {
+    margin-top: 14px;
+  }
+}
+
+@media (max-height: 680px) {
+  .home-icon {
+    display: none;
+  }
+
+  .home-eyebrow {
+    margin-bottom: 12px;
+  }
+}
+
+/* ------------------------------------------------------------------ 360° renders */
+.renders-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.renders-back {
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.renders-back:hover {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.renders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.render-card {
+  position: relative;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.render-card:hover,
+.render-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.render-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+}
+
+.render-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(10, 8, 6, 0.7);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.render-caption {
+  display: block;
+  padding: 12px 14px;
+  background: rgba(20, 15, 12, 0.9);
+  font-size: 1rem;
+}
+
+.pano-stage {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 210px);
+  min-height: 280px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+}
+
+.pano-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.pano-canvas:active {
+  cursor: grabbing;
+}
+
+.pano-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--muted);
+}
+
+.pano-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(10, 8, 6, 0.6);
+  backdrop-filter: blur(6px);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .pano-stage {
+    height: calc(100vh - 230px);
+  }
+
+  .pano-hint {
+    white-space: normal;
+    width: max-content;
+    max-width: 90%;
+    text-align: center;
+  }
+}
+
+
+/* ------------------------------------------------------------------ performance */
+/* A blur layer over the live 3D / panorama canvas forces the browser to
+   re-blur it every frame and makes the tour feel laggy. Solid, slightly more
+   opaque backgrounds look almost the same and cost nothing. */
+.scene-title,
+.info-card,
+.view-controls,
+.menu-panel,
+.music-toggle,
+.overlay,
+.radial-backdrop {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.scene-title,
+.view-controls {
+  background: rgba(20, 15, 12, 0.82);
+}
+
+.radial-backdrop {
+  background: rgba(10, 8, 6, 0.78);
+}
+
+.overlay {
+  background: rgba(10, 8, 6, 0.9);
+}
