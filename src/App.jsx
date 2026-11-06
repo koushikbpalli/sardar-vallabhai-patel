@@ -30,18 +30,34 @@ export default function App() {
   const overlayRef = useRef(null);
   overlayRef.current = overlay;
   const tourReadyRef = useRef(false);
+  const [tourShown, setTourShown] = useState(false); // true after the first "Enter"
 
   // Build the 3D tour in the background while the home page is showing, so the
   // model is already loaded and drawn once when the visitor presses Enter
   // (loading it on click is what made entering lag).
+  // It starts only after the home page has finished loading, so the home page
+  // appears first and smoothly.
   useEffect(() => {
-    const start = () => setTourMounted(true);
-    if (window.requestIdleCallback) {
-      const id = window.requestIdleCallback(start, { timeout: 2500 });
-      return () => window.cancelIdleCallback(id);
-    }
-    const id = window.setTimeout(start, 1500);
-    return () => window.clearTimeout(id);
+    let timerId;
+    let idleId;
+    const schedule = () => {
+      timerId = window.setTimeout(() => {
+        if (window.requestIdleCallback) {
+          idleId = window.requestIdleCallback(() => setTourMounted(true), {
+            timeout: 3000,
+          });
+        } else {
+          setTourMounted(true);
+        }
+      }, 1200);
+    };
+    if (document.readyState === "complete") schedule();
+    else window.addEventListener("load", schedule, { once: true });
+    return () => {
+      window.removeEventListener("load", schedule);
+      window.clearTimeout(timerId);
+      if (idleId && window.cancelIdleCallback) window.cancelIdleCallback(idleId);
+    };
   }, []);
 
   useEffect(() => () => clearTimeout(revealTimer.current), []);
@@ -90,6 +106,7 @@ export default function App() {
 
     startMusic();
 
+    setTourShown(true);
     setTourMounted(true); // already mounted if the background build finished
     tourRef.current?.reset?.(); // always start at the entrance
     if (tourReadyRef.current) {
@@ -154,7 +171,7 @@ export default function App() {
   return (
     <div className="app">
       {tourMounted && (
-        <>
+        <div className={`tour-layer${tourShown ? " on" : ""}`}>
           <Tour
             ref={tourRef}
             lang={lang}
@@ -170,7 +187,7 @@ export default function App() {
             onZoomOut={() => tourRef.current?.zoomOut()}
             onRecenter={() => tourRef.current?.recenter()}
           />
-        </>
+        </div>
       )}
 
       <Home

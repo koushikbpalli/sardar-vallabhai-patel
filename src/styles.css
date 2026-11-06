@@ -1495,3 +1495,16 @@ button {
 .overlay {
   background: rgba(10, 8, 6, 0.9);
 }
+
+
+/* ------------------------------------------------------------------ no flicker on page load */
+/* The 3D tour is built in the background while the home page shows. Keep it
+   invisible until the visitor has entered once, and give the home page a solid
+   backdrop so nothing shows through while its pictures are still loading. */
+.tour-layer:not(.on) {
+  visibility: hidden;
+}
+
+.home {
+  background: var(--bg);
+}
