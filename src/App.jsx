@@ -4,12 +4,14 @@ import Tour from "./components/Tour.jsx";
 import InfoPanel from "./components/InfoPanel.jsx";
 import FloatingMenu from "./components/FloatingMenu.jsx";
 import ViewControls from "./components/ViewControls.jsx";
+import FullscreenButton from "./components/FullscreenButton.jsx";
 import HistoryVideo from "./components/HistoryVideo.jsx";
 import Plans from "./components/Plans.jsx";
 import Gallery from "./components/Gallery.jsx";
 import Renders from "./components/Renders.jsx";
 import { START_NODE, getNode } from "./data/nodes.js";
 import { pick, useLang } from "./i18n.jsx";
+import { useRoute } from "./routes.js";
 
 // Send visitors back to the home page after this much inactivity (kiosk use).
 const IDLE_RESET_MS = 2 * 60 * 1000;
@@ -18,17 +20,25 @@ export default function App() {
   const { lang } = useLang();
   const tourRef = useRef(null);
   const revealTimer = useRef(null);
-  const enteredRef = useRef(false);
 
-  const [entered, setEntered] = useState(false); // visitor pressed "Enter" / "Virtual Tour"
+  // Which screen we are on comes from the URL (see routes.js), so the browser
+  // Back / Forward buttons move between screens instead of leaving the app.
+  //   entered : false = home page, true = virtual tour
+  //   overlay : null | 'history' | 'plans' | 'gallery' | 'renders'
+  const { route, go, closeOverlay } = useRoute();
+  const { entered, overlay } = route;
+  const routeRef = useRef(route);
+  routeRef.current = route;
+  const enteredRef = useRef(entered);
+  enteredRef.current = entered;
+  const overlayRef = useRef(overlay);
+  overlayRef.current = overlay;
+
   const [tourMounted, setTourMounted] = useState(false); // tour is created on first enter
   const [revealed, setRevealed] = useState(false); // tour is ready, home can fade away
   const [currentNode, setCurrentNode] = useState(START_NODE);
   const [markerId, setMarkerId] = useState(null);
-  const [overlay, setOverlay] = useState(null); // null | 'history' | 'plans' | 'gallery' | 'renders'
 
-  const overlayRef = useRef(null);
-  overlayRef.current = overlay;
   const tourReadyRef = useRef(false);
   const [tourShown, setTourShown] = useState(false); // true after the first "Enter"
 
@@ -67,8 +77,6 @@ export default function App() {
     revealTimer.current = setTimeout(() => setRevealed(true), delay);
   }, []);
 
-  const closeOverlay = useCallback(() => setOverlay(null), []);
-
   const audioRef = useRef(null);
   const [musicOn, setMusicOn] = useState(false);
 
@@ -97,44 +105,59 @@ export default function App() {
     }
   };
 
-  const handleEnter = () => {
-    enteredRef.current = true;
-    setOverlay(null);
-    setEntered(true);
+  // Runs whenever the visitor moves between the home page and the tour: with the
+  // buttons, with the browser Back / Forward buttons, or by opening a link.
+  useEffect(() => {
     setRevealed(false);
     setMarkerId(null);
-
-    startMusic();
-
-    setTourShown(true);
-    setTourMounted(true); // already mounted if the background build finished
-    tourRef.current?.reset?.(); // always start at the entrance
-    if (tourReadyRef.current) {
-      reveal(500);
+    if (entered) {
+      setTourShown(true);
+      setTourMounted(true); // already mounted if the background build finished
+      tourRef.current?.reset?.(); // always start at the entrance
+      startMusic(); // may be refused by the browser if there was no click
+      if (tourReadyRef.current) {
+        reveal(500);
+      } else {
+        // Still loading: handleReady reveals as soon as the tour is ready.
+        // This is only a safety net in case loading takes very long.
+        reveal(10000);
+      }
     } else {
-      // Still loading: handleReady reveals as soon as the tour is ready.
-      // This is only a safety net in case loading takes very long.
-      reveal(10000);
+      clearTimeout(revealTimer.current);
+      audioRef.current?.pause();
+      setMusicOn(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entered]);
+
+  const handleEnter = () => {
+    startMusic(); // called here as well: sound is only allowed inside a click
+    // From a popup on the home page, swap that history entry instead of adding one.
+    go({ entered: true, overlay: null }, { replace: !!routeRef.current.overlay });
   };
 
   // "Virtual Tour" menu item: enter the tour, or just close any open page if already in it.
   const handleTour = () => {
-    if (enteredRef.current) setOverlay(null);
+    if (routeRef.current.entered) closeOverlay();
     else handleEnter();
   };
 
   const handleHome = useCallback(() => {
-    clearTimeout(revealTimer.current);
-    enteredRef.current = false;
-    setOverlay(null);
-    setEntered(false);
-    setRevealed(false);
-    setMarkerId(null);
+    const r = routeRef.current;
+    if (!r.entered && r.overlay) closeOverlay(); // popup over the home page
+    else go({ entered: false, overlay: null });
+  }, [go, closeOverlay]);
 
-    audioRef.current?.pause();
-    setMusicOn(false);
-  }, []);
+  // Open a popup (History, Plans, Gallery, 360° Renders). The first one adds a
+  // history entry; switching to another popup replaces it, so one Back press
+  // always returns to the page underneath.
+  const handleOpen = useCallback(
+    (name) => {
+      const r = routeRef.current;
+      go({ entered: r.entered, overlay: name }, { replace: !!r.overlay });
+    },
+    [go],
+  );
 
   // Idle timer: any interaction resets it. A playing history video is not interrupted.
   useEffect(() => {
@@ -207,10 +230,16 @@ export default function App() {
         currentNode={currentNode}
         onHome={handleHome}
         onTour={handleTour}
-        onOpen={setOverlay}
+        onOpen={handleOpen}
       />
 
-      <audio ref={audioRef} src="audio/music.mpeg" loop preload="auto" />
+      {/* Always on screen: home page, tour and every popup. */}
+      <FullscreenButton
+        place={overlay ? (entered ? "popup-tour" : "popup-home") : entered ? "tour" : "home"}
+      />
+
+      {/* Absolute path: a relative one would break on URLs like /tour/gallery. */}
+      <audio ref={audioRef} src="/audio/music.mpeg" loop preload="auto" />
 
       {entered && (
         <button

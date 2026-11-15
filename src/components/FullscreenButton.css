@@ -1,0 +1,85 @@
+/* Always-visible fullscreen button (see FullscreenButton.jsx).
+   Its position depends on the page so it never covers anything, and it stays
+   in the same spot when a popup opens. To move it, override the variables in
+   styles.css, e.g.  :root { --fs-top-tour: 100px; } */
+
+.fullscreen-fab {
+  position: fixed;
+  top: var(--fs-top, 16px);
+  right: var(--fs-right, 16px);
+  z-index: 1000; /* above the home page, the tour and every popup */
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  /* solid background: no backdrop-filter, it makes the 3D tour laggy */
+  background: rgba(18, 22, 28, 0.88);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fullscreen-fab:hover {
+  background: rgba(233, 163, 75, 0.95);
+  border-color: transparent;
+  color: #2a1708;
+  transform: scale(1.06);
+}
+
+.fullscreen-fab svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Home page (and popups opened over it): inside the thin gold frame, which is
+   32px from the edge. The popup box is inset 108px, so it stays clear. */
+.fullscreen-fab.fs-home,
+.fullscreen-fab.fs-popup-home {
+  top: var(--fs-top-home, 48px);
+  right: var(--fs-right-home, 48px);
+}
+
+/* Tour page (and popups opened over it): below the tour's own top bar
+   (Orbit view / Day / Evening / Night). */
+.fullscreen-fab.fs-tour,
+.fullscreen-fab.fs-popup-tour {
+  top: var(--fs-top-tour, 84px);
+}
+
+@media (max-width: 900px) {
+  /* Popups fill the whole width here, so the button moves to the bottom-right
+     corner (the popup keeps 100px free at the bottom). On the tour the music
+     button sits in that corner, so the button goes next to it. */
+  .fullscreen-fab.fs-popup-home,
+  .fullscreen-fab.fs-popup-tour {
+    top: auto;
+    bottom: 24px;
+    right: 24px;
+  }
+
+  .fullscreen-fab.fs-popup-tour {
+    right: 84px;
+  }
+}
+
+@media (max-width: 768px) {
+  .fullscreen-fab.fs-home {
+    top: 26px;
+    right: 26px;
+  }
+}
+
+@media (max-width: 650px) {
+  .fullscreen-fab.fs-tour {
+    top: var(--fs-top-tour, 112px);
+    right: 10px;
+  }
+}
